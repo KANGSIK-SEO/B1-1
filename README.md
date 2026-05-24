@@ -1,0 +1,52 @@
+# 문제 13: 시스템 관제 자동화 스크립트
+
+Ubuntu 22.04 LTS 기준으로 SSH 보안, 방화벽, 계정/그룹/ACL, 실행 환경 변수, 관제 스크립트, cron 등록을 자동화한 제출물입니다.
+
+## 구성
+
+```text
+.
+├── docs/requirements_report.md
+├── docs/evidence_checklist.md
+├── resources/agent-app
+└── scripts
+    ├── monitor.sh
+    ├── report.sh
+    └── setup_agent_env.sh
+```
+
+## 설치
+
+```bash
+sudo bash scripts/setup_agent_env.sh --strict-firewall
+```
+
+`--strict-firewall` 옵션은 기존 UFW 규칙을 초기화하고 TCP 20022, 15034만 허용합니다. 기존 서버에서 실행할 때는 SSH 접속이 끊기지 않도록 콘솔 또는 별도 접근 경로를 확보한 뒤 실행해야 합니다.
+
+## 앱 실행
+
+```bash
+sudo -u agent-dev -E /opt/agent-app/agent_app.py
+```
+
+제공된 `resources/agent-app` Linux 실행 파일은 설치 시 `/opt/agent-app/agent_app.py`로 배치됩니다. 프로세스명과 과제 요구사항의 `agent_app.py` 점검 조건을 맞추기 위한 설치 경로입니다.
+
+## 관제 실행
+
+```bash
+sudo -u agent-admin -E /opt/agent-app/bin/monitor.sh
+tail -f /var/log/agent-app/monitor.log
+```
+
+cron은 `agent-admin` 사용자에 매분 실행되도록 자동 등록됩니다.
+
+```bash
+sudo crontab -u agent-admin -l
+```
+
+## 보너스 리포트
+
+```bash
+/opt/agent-app/bin/report.sh
+/opt/agent-app/bin/report.sh -s "2026-05-24 09:00:00" -e "2026-05-24 18:00:00"
+```
