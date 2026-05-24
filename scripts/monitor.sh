@@ -2,11 +2,12 @@
 set -u
 
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MONITOR_SAMPLE_MODE=${MONITOR_SAMPLE_MODE:-0}
 
-if [ -f /etc/profile.d/agent-app.sh ]; then
+if [ "$MONITOR_SAMPLE_MODE" != "1" ] && [ -f /etc/profile.d/agent-app.sh ]; then
   # shellcheck disable=SC1091
   . /etc/profile.d/agent-app.sh
-elif [ -f "${AGENT_HOME:-/opt/agent-app}/.env" ]; then
+elif [ "$MONITOR_SAMPLE_MODE" != "1" ] && [ -f "${AGENT_HOME:-/opt/agent-app}/.env" ]; then
   # shellcheck disable=SC1091
   . "${AGENT_HOME:-/opt/agent-app}/.env"
 fi
@@ -19,7 +20,6 @@ AGENT_LOG_DIR=${AGENT_LOG_DIR:-/var/log/agent-app}
 LOG_FILE="$AGENT_LOG_DIR/monitor.log"
 MAX_LOG_BYTES=$((10 * 1024 * 1024))
 MAX_LOG_COUNT=10
-MONITOR_SAMPLE_MODE=${MONITOR_SAMPLE_MODE:-0}
 
 warn() {
   printf '[WARNING] %s\n' "$*"
