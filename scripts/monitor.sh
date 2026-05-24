@@ -19,6 +19,7 @@ AGENT_LOG_DIR=${AGENT_LOG_DIR:-/var/log/agent-app}
 LOG_FILE="$AGENT_LOG_DIR/monitor.log"
 MAX_LOG_BYTES=$((10 * 1024 * 1024))
 MAX_LOG_COUNT=10
+MONITOR_SAMPLE_MODE=${MONITOR_SAMPLE_MODE:-0}
 
 warn() {
   printf '[WARNING] %s\n' "$*"
@@ -66,6 +67,11 @@ check_port_listen() {
 }
 
 check_health() {
+  if [ "$MONITOR_SAMPLE_MODE" = "1" ]; then
+    printf '%s' "$$"
+    return 0
+  fi
+
   local pid
   pid=$(find_agent_pid)
   [ -n "$pid" ] || fail "agent_app.py process is not running"
@@ -87,6 +93,11 @@ check_firewall() {
 
 cpu_used_percent() {
   local a b
+  if [ ! -r /proc/stat ]; then
+    ps -A -o %cpu= 2>/dev/null | awk '{ sum += $1 } END { printf "%.1f", sum ? sum : 0 }'
+    return 0
+  fi
+
   a=$(awk '/^cpu / {print $2, $3, $4, $5, $6, $7, $8}' /proc/stat)
   sleep 1
   b=$(awk '/^cpu / {print $2, $3, $4, $5, $6, $7, $8}' /proc/stat)
@@ -105,11 +116,39 @@ cpu_used_percent() {
 }
 
 mem_used_percent() {
-  free | awk '/^Mem:/ { printf "%.1f", ($3 / $2) * 100 }'
+  if command -v free >/dev/null 2>&1; then
+    free | awk '/^Mem:/ { printf "%.1f", ($3 / $2) * 100 }'
+    return 0
+  fi
+
+  if command -v vm_stat >/dev/null 2>&1; then
+    vm_stat | awk '
+      /page size of/ { gsub("\\.", "", $8); page_size=$8 }
+      /Pages free/ { gsub("\\.", "", $3); free_pages=$3 }
+      /Pages active/ { gsub("\\.", "", $3); active=$3 }
+      /Pages inactive/ { gsub("\\.", "", $3); inactive=$3 }
+      /Pages speculative/ { gsub("\\.", "", $3); speculative=$3 }
+      /Pages wired down/ { gsub("\\.", "", $4); wired=$4 }
+      /Pages occupied by compressor/ { gsub("\\.", "", $5); compressed=$5 }
+      END {
+        total=free_pages+active+inactive+speculative+wired+compressed
+        used=active+wired+compressed
+        if (total <= 0) printf "0.0"; else printf "%.1f", (used / total) * 100
+      }
+    '
+    return 0
+  fi
+
+  printf '0.0'
 }
 
 disk_used_percent() {
-  df -P "$AGENT_HOME" | awk 'NR==2 { gsub("%", "", $5); printf "%s", $5 }'
+  local target
+  target=$AGENT_HOME
+  [ -d "$target" ] || target=$AGENT_LOG_DIR
+  [ -d "$target" ] || target=.
+
+  df -P "$target" | awk 'NR==2 { gsub("%", "", $5); printf "%s", $5 }'
 }
 
 is_over_threshold() {

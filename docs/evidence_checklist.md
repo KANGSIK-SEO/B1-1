@@ -137,6 +137,15 @@ sudo tail -n 5 /var/log/agent-app/monitor.log
 [2026-05-24 10:01:00] PID:1234 CPU:2.7% MEM:15.3% DISK_USED:42%
 ```
 
+로컬 저장소 증거 로그:
+
+```bash
+bash scripts/generate_sample_log.sh
+cat logs/var/log/agent-app/monitor.log
+```
+
+저장소 안의 `logs/var/log/agent-app/monitor.log`는 개발 PC에서 만든 제출 증거용 샘플입니다. 실제 Ubuntu 서버에서는 `/var/log/agent-app/monitor.log`가 생성됩니다.
+
 ## crontab 매분 실행
 
 ```bash

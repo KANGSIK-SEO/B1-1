@@ -44,6 +44,17 @@ cron은 `agent-admin` 사용자에 매분 실행되도록 자동 등록됩니다
 sudo crontab -u agent-admin -l
 ```
 
+## 로컬 증거 로그 생성
+
+macOS나 개발 PC처럼 실제 Ubuntu 서버가 아닌 곳에서는 `/var/log/agent-app/monitor.log`를 만들 수 없거나 `ss`, UFW, `/proc/stat`이 없어 Health Check가 실패할 수 있습니다. 저장소 검토용 로그는 아래 명령으로 생성합니다.
+
+```bash
+bash scripts/generate_sample_log.sh
+cat logs/var/log/agent-app/monitor.log
+```
+
+이 샘플 모드는 `MONITOR_SAMPLE_MODE=1`일 때만 앱 프로세스/포트 검사를 우회합니다. Ubuntu 제출 환경에서 기본 실행할 때는 여전히 `agent_app.py` 실행과 `15034 LISTEN`을 검사합니다.
+
 ## 보너스 리포트
 
 ```bash
